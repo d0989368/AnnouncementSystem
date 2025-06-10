@@ -1,7 +1,9 @@
 package com.announcement.controller;
 
 import com.announcement.entity.Announcement;
+import com.announcement.entity.Attachment;
 import com.announcement.service.AnnouncementService;
+import com.announcement.service.AttachmentService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -12,14 +14,11 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import javax.servlet.http.HttpServletResponse;
 import java.io.*;
 import java.net.URLEncoder;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.List;
-import java.util.UUID;
 
 /**
- * 公告管理控制器 - JSP版本
+ * 公告管理控制器
  */
 @Controller
 @RequestMapping("/web")
@@ -28,7 +27,10 @@ public class InteractiveController {
     @Autowired
     private AnnouncementService announcementService;
 
-    private static final int PAGE_SIZE = 10;
+    @Autowired
+    private AttachmentService attachmentService;
+
+    private static final int PAGE_SIZE = 5;
     private static final String UPLOAD_DIR = "/opt/uploads/";
 
     /**
@@ -62,6 +64,7 @@ public class InteractiveController {
 
             return "list";
         } catch (Exception e) {
+            e.printStackTrace();
             model.addAttribute("error", "加載公告列表失敗：" + e.getMessage());
             return "list";
         }
@@ -72,8 +75,15 @@ public class InteractiveController {
      */
     @GetMapping("/add")
     public String addPage(Model model) {
-        // 不設置announcement屬性，讓JSP判斷為空
-        return "form";
+        try {
+            System.out.println("=== 進入新增頁面 ===");
+            return "form";
+        } catch (Exception e) {
+            System.err.println("新增頁面錯誤: " + e.getMessage());
+            e.printStackTrace();
+            model.addAttribute("error", "加載新增頁面失敗：" + e.getMessage());
+            return "redirect:/web/";
+        }
     }
 
     /**
@@ -85,9 +95,13 @@ public class InteractiveController {
                             @RequestParam String publishDate,
                             @RequestParam String endDate,
                             @RequestParam(required = false) String content,
-                            @RequestParam(required = false) MultipartFile attachment,
+                            @RequestParam(required = false) MultipartFile[] attachments,
                             RedirectAttributes redirectAttributes) {
         try {
+            System.out.println("=== 處理新增公告 ===");
+            System.out.println("標題: " + title);
+            System.out.println("發布者: " + publisher);
+
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
             Announcement announcement = new Announcement();
@@ -97,17 +111,26 @@ public class InteractiveController {
             announcement.setEndDate(dateFormat.parse(endDate));
             announcement.setContent(content);
 
-            // 處理文件上傳
-            if (attachment != null && !attachment.isEmpty()) {
-                String fileName = saveFile(attachment);
-                announcement.setAttachmentName(attachment.getOriginalFilename());
-                announcement.setAttachmentPath(fileName);
+            // 保存公告
+            announcementService.save(announcement);
+            System.out.println("公告保存成功，ID: " + announcement.getId());
+
+            // 保存附件
+            if (attachments != null && attachments.length > 0) {
+                System.out.println("處理 " + attachments.length + " 個附件");
+                for (MultipartFile file : attachments) {
+                    if (!file.isEmpty()) {
+                        System.out.println("保存附件: " + file.getOriginalFilename());
+                        attachmentService.saveAttachment(announcement.getId(), file);
+                    }
+                }
             }
 
-            announcementService.save(announcement, attachment);
             redirectAttributes.addFlashAttribute("message", "公告新增成功！");
             return "redirect:/web/";
         } catch (Exception e) {
+            System.err.println("新增失败: " + e.getMessage());
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "新增失敗：" + e.getMessage());
             return "redirect:/web/add";
         }
@@ -119,6 +142,8 @@ public class InteractiveController {
     @GetMapping("/edit/{id}")
     public String editPage(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         try {
+            System.out.println("=== 進入編輯頁面，ID: " + id + " ===");
+
             Announcement announcement = announcementService.findById(id);
             if (announcement == null) {
                 redirectAttributes.addFlashAttribute("error", "公告不存在！");
@@ -126,8 +151,23 @@ public class InteractiveController {
             }
 
             model.addAttribute("announcement", announcement);
+
+            // 獲取附件列表
+            try {
+                List<Attachment> attachments = attachmentService.getAttachmentsByAnnouncementId(id);
+                model.addAttribute("attachments", attachments);
+                System.out.println("附件数量: " + (attachments != null ? attachments.size() : 0));
+            } catch (Exception attachmentError) {
+                System.err.println("查詢附件失敗: " + attachmentError.getMessage());
+                attachmentError.printStackTrace();
+                // 不中斷執行，繼續顯示編輯頁面，但附件為空
+            }
+
+            System.out.println("編輯頁面加載成功");
             return "form";
         } catch (Exception e) {
+            System.err.println("編輯頁面錯誤: " + e.getMessage());
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "加載公告失敗：" + e.getMessage());
             return "redirect:/web/";
         }
@@ -143,24 +183,46 @@ public class InteractiveController {
                              @RequestParam String publishDate,
                              @RequestParam String endDate,
                              @RequestParam(required = false) String content,
-                             @RequestParam(required = false) MultipartFile attachment,
+                             @RequestParam(required = false) MultipartFile[] attachments,
                              RedirectAttributes redirectAttributes) {
         try {
+            System.out.println("=== 處理編輯公告，ID: " + id + " ===");
+
             SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
 
-            // 創建新的對象而不是查詢現有對象
-            Announcement announcement = new Announcement();
-            announcement.setId(id);  // 設置ID用於更新
-            announcement.setTitle(title);
-            announcement.setPublisher(publisher);
-            announcement.setPublishDate(dateFormat.parse(publishDate));
-            announcement.setEndDate(dateFormat.parse(endDate));
-            announcement.setContent(content);
+            // 獲取現有公告
+            Announcement existingAnnouncement = announcementService.findById(id);
+            if (existingAnnouncement == null) {
+                redirectAttributes.addFlashAttribute("error", "公告不存在！");
+                return "redirect:/web/";
+            }
 
-            announcementService.update(announcement, attachment);
+            // 更新公告信息
+            existingAnnouncement.setTitle(title);
+            existingAnnouncement.setPublisher(publisher);
+            existingAnnouncement.setPublishDate(dateFormat.parse(publishDate));
+            existingAnnouncement.setEndDate(dateFormat.parse(endDate));
+            existingAnnouncement.setContent(content);
+
+            // 更新公告
+            announcementService.update(existingAnnouncement);
+
+            // 保存新附件
+            if (attachments != null && attachments.length > 0) {
+                System.out.println("添加 " + attachments.length + " 個新附件");
+                for (MultipartFile file : attachments) {
+                    if (!file.isEmpty()) {
+                        System.out.println("保存新附件: " + file.getOriginalFilename());
+                        attachmentService.saveAttachment(id, file);
+                    }
+                }
+            }
+
             redirectAttributes.addFlashAttribute("message", "公告更新成功！");
             return "redirect:/web/view/" + id;
         } catch (Exception e) {
+            System.err.println("更新失败: " + e.getMessage());
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "更新失敗：" + e.getMessage());
             return "redirect:/web/edit/" + id;
         }
@@ -172,6 +234,8 @@ public class InteractiveController {
     @GetMapping("/view/{id}")
     public String viewPage(@PathVariable Long id, Model model, RedirectAttributes redirectAttributes) {
         try {
+            System.out.println("=== 查看公告詳情，ID: " + id + " ===");
+
             Announcement announcement = announcementService.findById(id);
             if (announcement == null) {
                 redirectAttributes.addFlashAttribute("error", "公告不存在！");
@@ -179,8 +243,21 @@ public class InteractiveController {
             }
 
             model.addAttribute("announcement", announcement);
+
+            // 獲取附件列表
+            try {
+                List<Attachment> attachments = attachmentService.getAttachmentsByAnnouncementId(id);
+                model.addAttribute("attachments", attachments);
+                System.out.println("附件數量: " + (attachments != null ? attachments.size() : 0));
+            } catch (Exception e) {
+                System.err.println("查詢附件失敗: " + e.getMessage());
+                e.printStackTrace();
+            }
+
             return "view";
         } catch (Exception e) {
+            System.err.println("查看詳情失敗: " + e.getMessage());
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "加載公告失敗：" + e.getMessage());
             return "redirect:/web/";
         }
@@ -192,49 +269,78 @@ public class InteractiveController {
     @GetMapping("/delete/{id}")
     public String deleteAnnouncement(@PathVariable Long id, RedirectAttributes redirectAttributes) {
         try {
-            Announcement announcement = announcementService.findById(id);
-            if (announcement == null) {
-                redirectAttributes.addFlashAttribute("error", "公告不存在！");
-                return "redirect:/web/";
-            }
+            System.out.println("=== 刪除公告，ID: " + id + " ===");
 
+            // 刪除附件
+            attachmentService.deleteAttachmentsByAnnouncementId(id);
+            // 刪除公告
             announcementService.delete(id);
+
             redirectAttributes.addFlashAttribute("message", "公告刪除成功！");
         } catch (Exception e) {
+            System.err.println("删除失敗: " + e.getMessage());
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("error", "刪除失敗：" + e.getMessage());
         }
         return "redirect:/web/";
     }
 
     /**
+     * 刪除單個附件
+     */
+    @GetMapping("/attachment/delete/{attachmentId}")
+    public String deleteAttachment(@PathVariable Long attachmentId,
+                                   @RequestParam Long announcementId,
+                                   RedirectAttributes redirectAttributes) {
+        try {
+            System.out.println("=== 删除附件，ID: " + attachmentId + " ===");
+
+            Attachment attachment = attachmentService.getAttachmentById(attachmentId);
+            if (attachment == null) {
+                redirectAttributes.addFlashAttribute("error", "附件不存在！");
+                return "redirect:/web/edit/" + announcementId;
+            }
+
+            if (!attachment.getAnnouncementId().equals(announcementId)) {
+                redirectAttributes.addFlashAttribute("error", "操作權限不足！");
+                return "redirect:/web/edit/" + announcementId;
+            }
+
+            attachmentService.deleteAttachment(attachmentId);
+            redirectAttributes.addFlashAttribute("message", "附件刪除成功！");
+        } catch (Exception e) {
+            System.err.println("删除附件失败: " + e.getMessage());
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "刪除附件失敗：" + e.getMessage());
+        }
+        return "redirect:/web/edit/" + announcementId;
+    }
+
+    /**
      * 下載附件
      */
-    @GetMapping("/download/{id}")
-    public void downloadAttachment(@PathVariable Long id, HttpServletResponse response) throws IOException {
+    @GetMapping("/attachment/download/{attachmentId}")
+    public void downloadAttachment(@PathVariable Long attachmentId, HttpServletResponse response) throws IOException {
         try {
-            Announcement announcement = announcementService.findById(id);
-            if (announcement == null || announcement.getAttachmentPath() == null) {
+            System.out.println("=== 下载附件，ID: " + attachmentId + " ===");
+
+            Attachment attachment = attachmentService.getAttachmentById(attachmentId);
+            if (attachment == null) {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "附件不存在");
                 return;
             }
 
-            File file = new File(UPLOAD_DIR + announcement.getAttachmentPath());
+            File file = new File(UPLOAD_DIR + attachment.getFilePath());
             if (!file.exists()) {
                 response.sendError(HttpServletResponse.SC_NOT_FOUND, "附件文件不存在");
                 return;
             }
 
-            // 設置響應頭
+            // 設置 response
             response.setContentType("application/octet-stream");
             response.setCharacterEncoding("UTF-8");
 
-            String fileName = announcement.getAttachmentName();
-            if (fileName == null) {
-                fileName = announcement.getAttachmentPath();
-            }
-
-            // 處理中文文件名
-            String encodedFileName = URLEncoder.encode(fileName, "UTF-8").replaceAll("\\+", "%20");
+            String encodedFileName = URLEncoder.encode(attachment.getOriginalName(), "UTF-8").replaceAll("\\+", "%20");
             response.setHeader("Content-Disposition", "attachment; filename*=UTF-8''" + encodedFileName);
             response.setContentLengthLong(file.length());
 
@@ -251,46 +357,9 @@ public class InteractiveController {
                 os.flush();
             }
         } catch (Exception e) {
+            System.err.println("下载附件失敗: " + e.getMessage());
+            e.printStackTrace();
             response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "下載失敗：" + e.getMessage());
-        }
-    }
-
-    /**
-     * 保存上傳的文件
-     */
-    private String saveFile(MultipartFile file) throws IOException {
-        // 創建上傳目錄
-        File uploadDir = new File(UPLOAD_DIR);
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
-        }
-
-        // 生成唯一文件名
-        String originalFilename = file.getOriginalFilename();
-        String extension = originalFilename != null && originalFilename.contains(".")
-                ? originalFilename.substring(originalFilename.lastIndexOf("."))
-                : "";
-        String fileName = UUID.randomUUID().toString() + extension;
-
-        // 保存文件
-        File targetFile = new File(uploadDir, fileName);
-        file.transferTo(targetFile);
-
-        return fileName;
-    }
-
-    /**
-     * 刪除文件
-     */
-    private void deleteFile(String fileName) {
-        try {
-            File file = new File(UPLOAD_DIR + fileName);
-            if (file.exists()) {
-                file.delete();
-            }
-        } catch (Exception e) {
-            // 日誌記錄，但不影響主要流程
-            System.err.println("刪除文件失敗：" + e.getMessage());
         }
     }
 }
