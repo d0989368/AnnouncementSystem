@@ -10,86 +10,7 @@
     <title><c:out value="${announcement.title}"/> - 公告管理系統</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <style>
-        .announcement-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        .info-item {
-            border-bottom: 1px solid #eee;
-            padding: 0.75rem 0;
-        }
-        .info-item:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            font-weight: 600;
-            color: #495057;
-            width: 120px;
-            display: inline-block;
-        }
-        .content-area {
-            background-color: #f8f9fa;
-            border-radius: 0.375rem;
-            padding: 1.5rem;
-            line-height: 1.8;
-            font-family: 'Microsoft YaHei', Arial, sans-serif;
-        }
-        .status-badge {
-            font-size: 0.9em;
-            padding: 0.5em 1em;
-        }
-        .attachment-item {
-            border: 1px solid #dee2e6;
-            border-radius: 0.5rem;
-            padding: 1rem;
-            margin-bottom: 0.75rem;
-            background: linear-gradient(145deg, #ffffff, #f8f9fa);
-            transition: all 0.3s ease;
-        }
-        .attachment-item:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-            border-color: #0d6efd;
-        }
-        .attachment-icon {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #0d6efd, #6610f2);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 1.5rem;
-        }
-        .btn-action {
-            margin: 0 0.25rem;
-        }
-        .timeline-card {
-            border: none;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .print-hidden {
-            display: none;
-        }
-        @media print {
-            .no-print {
-                display: none !important;
-            }
-            .print-hidden {
-                display: block !important;
-            }
-            .card {
-                border: none !important;
-                box-shadow: none !important;
-            }
-            .attachment-item {
-                border: 1px solid #ccc !important;
-                box-shadow: none !important;
-            }
-        }
-    </style>
+    <link href="${pageContext.request.contextPath}/static/css/view.css" rel="stylesheet">
 </head>
 <body class="bg-light">
     <!-- 導航欄 -->
@@ -432,73 +353,11 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        function confirmDelete() {
-            if (confirm('確定要刪除這個公告嗎？\n\n標題：${fn:escapeXml(announcement.title)}\n\n此操作不可恢復！')) {
-                window.location.href = '${pageContext.request.contextPath}/web/delete/${announcement.id}';
-            }
-        }
-
-        // 自動滾動到內容區域（如果從列表頁面跳轉）
-        document.addEventListener('DOMContentLoaded', function() {
-            if (document.referrer.includes('/web/')) {
-                // 從列表頁跳轉來的，不滾動
-            } else {
-                // 直接訪問，滾動到內容區域
-                setTimeout(function() {
-                    const cardBody = document.querySelector('.card-body');
-                    if (cardBody) {
-                        cardBody.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                }, 300);
-            }
-
-            // 附件項目hover效果
-            document.querySelectorAll('.attachment-item').forEach(item => {
-                item.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-3px)';
-                });
-                item.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                });
-            });
-        });
-
-        // 鍵盤快捷鍵
-        document.addEventListener('keydown', function(e) {
-            // Ctrl+P 打印
-            if (e.ctrlKey && e.key === 'p') {
-                e.preventDefault();
-                window.print();
-            }
-            // Ctrl+E 編輯
-            if (e.ctrlKey && e.key === 'e') {
-                e.preventDefault();
-                window.location.href = '${pageContext.request.contextPath}/web/edit/${announcement.id}';
-            }
-            // ESC 返回列表
-            if (e.key === 'Escape') {
-                window.location.href = '${pageContext.request.contextPath}/web/';
-            }
-        });
-
-        // 打印樣式優化
-        window.addEventListener('beforeprint', function() {
-            document.title = '${fn:escapeXml(announcement.title)} - 公告詳情';
-        });
-
-        window.addEventListener('afterprint', function() {
-            document.title = '${fn:escapeXml(announcement.title)} - 公告管理系統';
-        });
-
-        // 附件下載追踪（可選）
-        document.querySelectorAll('a[href*="/attachment/download/"]').forEach(link => {
-            link.addEventListener('click', function() {
-                console.log('下載附件：', this.textContent.trim());
-            });
-        });
+        // 设置全局变量供JS文件使用
+        var contextPath = '${pageContext.request.contextPath}';
+        var announcementId = '${announcement.id}';
+        var announcementTitle = '${fn:escapeXml(announcement.title)}';
     </script>
+    <script src="${pageContext.request.contextPath}/static/js/view.js"></script>
 </body>
 </html>

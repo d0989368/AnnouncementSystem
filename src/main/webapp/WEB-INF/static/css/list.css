@@ -1,0 +1,155 @@
+/* 列表页面样式 - list.css */
+
+.status-badge {
+    font-size: 0.8em;
+    padding: 0.4em 0.8em;
+}
+
+.announcement-title {
+    font-weight: 600;
+    color: #333;
+    transition: all 0.2s ease;
+}
+
+.announcement-title:hover {
+    color: #667eea;
+    text-decoration: none;
+    transform: translateX(3px);
+}
+
+.search-card {
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    border-radius: 1rem;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+}
+
+.stats-card {
+    border: none;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    border-radius: 0.75rem;
+    background: linear-gradient(145deg, #ffffff, #f8f9fa);
+}
+
+.stats-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.main-card {
+    border: none;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    border-radius: 1rem;
+}
+
+.card-header-custom {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 1rem 1rem 0 0 !important;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(102, 126, 234, 0.05);
+    transform: scale(1.002);
+    transition: all 0.2s ease;
+}
+
+.btn-group-custom {
+    gap: 0.25rem;
+}
+
+.btn-action {
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.btn-action:hover {
+    transform: translateY(-1px);
+}
+
+.pagination-custom .page-link {
+    border-radius: 0.5rem;
+    margin: 0 0.1rem;
+    color: #667eea;
+    border: 1px solid #dee2e6;
+    padding: 0.5rem 0.75rem;
+}
+
+.pagination-custom .page-item.active .page-link {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    border-color: #667eea;
+}
+
+.pagination-custom .page-link:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+    border-color: #667eea;
+    transform: translateY(-1px);
+}
+
+.empty-state {
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.empty-state i {
+    color: #6c757d;
+    margin-bottom: 1.5rem;
+}
+
+.search-input {
+    border-radius: 0.75rem;
+    border: 2px solid #dee2e6;
+    padding: 0.75rem 1rem;
+    transition: all 0.2s ease;
+}
+
+.search-input::placeholder {
+    color: #6c757d;
+}
+
+.search-input:focus {
+    border-color: #667eea;
+    box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+}
+
+.attachment-indicator {
+    color: #6c757d;
+    transition: color 0.2s ease;
+}
+
+.attachment-indicator:hover {
+    color: #0d6efd;
+}
+
+.navbar-custom {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    box-shadow: 0 2px 10px rgba(102, 126, 234, 0.3);
+}
+
+.footer-custom {
+    background: linear-gradient(145deg, #f8f9fa, #e9ecef);
+    border-top: 1px solid #dee2e6;
+}
+
+/* 动画样式 */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate__fadeInUp {
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+.focused {
+    transform: scale(1.02);
+    transition: transform 0.2s ease;
+}
