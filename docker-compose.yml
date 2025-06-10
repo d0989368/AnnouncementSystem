@@ -1,0 +1,39 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: announcement-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: announcement_db
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./my.cnf:/etc/mysql/conf.d/my.cnf
+    # 強制UTF-8字符集
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+      --init-connect='SET NAMES utf8mb4'
+      --init-connect='SET CHARACTER SET utf8mb4'
+      --skip-character-set-client-handshake
+
+  tomcat:
+    image: tomcat:9.0-jdk8
+    container_name: announcement-tomcat
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./webapps:/usr/local/tomcat/webapps
+      - ./uploads:/opt/uploads
+    depends_on:
+      - mysql
+    environment:
+      JAVA_OPTS: "-Xmx512m -Xms256m -Dfile.encoding=UTF-8"
+
+volumes:
+  mysql_data:
