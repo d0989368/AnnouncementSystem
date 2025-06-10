@@ -1,64 +1,64 @@
-// 列表页面脚本 - list.js
-
 function confirmDelete(id, title) {
     if (confirm('確定要刪除公告「' + title + '」嗎？\n\n此操作不可恢復！')) {
         window.location.href = contextPath + '/web/delete/' + id;
     }
 }
 
-// DOM加载完成后执行
-document.addEventListener('DOMContentLoaded', function() {
+// DOM加載完成後執行
+$(document).ready(function() {
     // 自動隱藏消息提示
-    const alerts = document.querySelectorAll('.alert');
-    alerts.forEach(function(alert) {
+    $('.alert').each(function() {
+        var $alert = $(this);
         setTimeout(function() {
-            const bsAlert = new bootstrap.Alert(alert);
-            bsAlert.close();
+            $alert.alert('close');
         }, 5000); // 5秒後自動隱藏
     });
 
     // 添加表格行動畫
-    const tableRows = document.querySelectorAll('tbody tr');
-    tableRows.forEach((row, index) => {
-        row.style.animationDelay = `${index * 50}ms`;
-        row.classList.add('animate__fadeInUp');
+    $('tbody tr').each(function(index) {
+        $(this).css('animation-delay', (index * 50) + 'ms')
+              .addClass('animate__fadeInUp');
     });
 
     // 搜索框功能增強
-    const searchInput = document.querySelector('input[name="search"]');
-    if (searchInput) {
-        searchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                this.form.submit();
+    var $searchInput = $('input[name="search"]');
+    if ($searchInput.length) {
+        // Enter鍵提交搜索
+        $searchInput.on('keypress', function(e) {
+            if (e.which === 13) { // Enter key
+                $(this).closest('form').submit();
             }
         });
 
         // 搜索框焦點效果
-        searchInput.addEventListener('focus', function() {
-            this.parentElement.classList.add('focused');
-        });
-
-        searchInput.addEventListener('blur', function() {
-            this.parentElement.classList.remove('focused');
+        $searchInput.on('focus', function() {
+            $(this).parent().addClass('focused');
+        }).on('blur', function() {
+            $(this).parent().removeClass('focused');
         });
     }
 
     // 統計卡片動畫
-    const statsCards = document.querySelectorAll('.stats-card');
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -50px 0px'
-    };
+    var $statsCards = $('.stats-card');
 
-    const observer = new IntersectionObserver(function(entries) {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.animation = 'fadeInUp 0.6s ease forwards';
-            }
+    // 使用 Intersection Observer (如果支援) 或 scroll 事件
+    if ('IntersectionObserver' in window) {
+        var observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                if (entry.isIntersecting) {
+                    $(entry.target).css('animation', 'fadeInUp 0.6s ease forwards');
+                }
+            });
+        }, {
+            threshold: 0.1,
+            rootMargin: '0px 0px -50px 0px'
         });
-    }, observerOptions);
 
-    statsCards.forEach(card => {
-        observer.observe(card);
-    });
+        $statsCards.each(function() {
+            observer.observe(this);
+        });
+    } else {
+        // 降級到簡單的淡入效果
+        $statsCards.css('animation', 'fadeInUp 0.6s ease forwards');
+    }
 });
