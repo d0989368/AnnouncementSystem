@@ -33,22 +33,42 @@
             border-radius: 0.375rem;
             padding: 1.5rem;
             line-height: 1.8;
-            white-space: pre-wrap;
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
         }
         .status-badge {
             font-size: 0.9em;
             padding: 0.5em 1em;
         }
-        .attachment-card {
-            border: 2px dashed #dee2e6;
+        .attachment-item {
+            border: 1px solid #dee2e6;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(145deg, #ffffff, #f8f9fa);
             transition: all 0.3s ease;
         }
-        .attachment-card:hover {
+        .attachment-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             border-color: #0d6efd;
-            background-color: rgba(13, 110, 253, 0.05);
+        }
+        .attachment-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #0d6efd, #6610f2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
         }
         .btn-action {
             margin: 0 0.25rem;
+        }
+        .timeline-card {
+            border: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         .print-hidden {
             display: none;
@@ -64,12 +84,16 @@
                 border: none !important;
                 box-shadow: none !important;
             }
+            .attachment-item {
+                border: 1px solid #ccc !important;
+                box-shadow: none !important;
+            }
         }
     </style>
 </head>
 <body class="bg-light">
     <!-- 導航欄 -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow no-print">
+    <nav class="navbar navbar-expand-lg navbar-dark" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" class="no-print">
         <div class="container">
             <a class="navbar-brand" href="${pageContext.request.contextPath}/web/">
                 <i class="fas fa-bullhorn me-2"></i>公告管理系統
@@ -86,6 +110,23 @@
     </nav>
 
     <div class="container mt-4">
+        <!-- 成功/錯誤消息 -->
+        <c:if test="${not empty message}">
+            <div class="alert alert-success alert-dismissible fade show shadow-sm no-print" role="alert">
+                <i class="fas fa-check-circle me-2"></i>
+                <strong>成功！</strong> ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </c:if>
+
+        <c:if test="${not empty error}">
+            <div class="alert alert-danger alert-dismissible fade show shadow-sm no-print" role="alert">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                <strong>錯誤！</strong> ${error}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        </c:if>
+
         <!-- 錯誤處理 -->
         <c:if test="${empty announcement}">
             <div class="alert alert-danger text-center">
@@ -103,7 +144,7 @@
             <!-- 操作按鈕區域 -->
             <div class="d-flex justify-content-between align-items-center mb-4 no-print">
                 <div>
-                    <a href="${pageContext.request.contextPath}/web/" class="btn btn-secondary btn-action">
+                    <a href="${pageContext.request.contextPath}/web/" class="btn btn-outline-secondary btn-action">
                         <i class="fas fa-arrow-left me-1"></i>返回列表
                     </a>
                 </div>
@@ -122,7 +163,7 @@
             </div>
 
             <!-- 主要內容卡片 -->
-            <div class="card shadow-lg">
+            <div class="card shadow-lg border-0">
                 <!-- 標題區域 -->
                 <div class="card-header announcement-header">
                     <h2 class="mb-2">
@@ -140,7 +181,7 @@
                                 </span>
                             </c:when>
                             <c:when test="${announcement.publishDate gt now}">
-                                <span class="badge bg-warning status-badge">
+                                <span class="badge bg-warning text-dark status-badge">
                                     <i class="fas fa-hourglass-start me-1"></i>未發佈
                                 </span>
                             </c:when>
@@ -151,9 +192,11 @@
                             </c:otherwise>
                         </c:choose>
 
-                        <c:if test="${not empty announcement.attachmentName}">
+                        <!-- 附件标识 -->
+                        <c:if test="${not empty attachments and fn:length(attachments) > 0}">
                             <span class="badge bg-info status-badge ms-2">
-                                <i class="fas fa-paperclip me-1"></i>有附件
+                                <i class="fas fa-paperclip me-1"></i>
+                                ${fn:length(attachments)} 個附件
                             </span>
                         </c:if>
                     </div>
@@ -214,46 +257,103 @@
                         <c:choose>
                             <c:when test="${not empty announcement.content}">
                                 <div class="content-area">
-                                    <c:out value="${announcement.content}" escapeXml="false"/>
+                                    ${announcement.content}
                                 </div>
                             </c:when>
                             <c:otherwise>
                                 <div class="text-muted fst-italic text-center py-4">
-                                    <i class="fas fa-file-alt fa-2x mb-2"></i>
+                                    <i class="fas fa-file-alt fa-2x mb-2 text-muted"></i>
                                     <p>暫無詳細內容</p>
                                 </div>
                             </c:otherwise>
                         </c:choose>
                     </div>
 
-                    <!-- 附件下載 -->
-                    <c:if test="${not empty announcement.attachmentName}">
+                    <!-- 多附件下載區域 -->
+                    <c:if test="${not empty attachments and fn:length(attachments) > 0}">
                         <div class="mb-4">
                             <h5 class="mb-3">
-                                <i class="fas fa-paperclip text-primary me-2"></i>附件下載
+                                <i class="fas fa-paperclip text-primary me-2"></i>
+                                附件下載
+                                <span class="badge bg-primary">${fn:length(attachments)}</span>
                             </h5>
-                            <div class="attachment-card card p-3">
-                                <div class="d-flex align-items-center">
-                                    <div class="me-3">
-                                        <i class="fas fa-file-download fa-2x text-primary"></i>
+                            <div class="row">
+                                <c:forEach var="attachment" items="${attachments}" varStatus="status">
+                                    <div class="col-md-6 col-lg-4 mb-3">
+                                        <div class="attachment-item h-100">
+                                            <div class="d-flex align-items-start">
+                                                <div class="attachment-icon me-3 flex-shrink-0">
+                                                    <c:set var="fileExt" value="${fn:toLowerCase(fn:substringAfter(attachment.originalName, '.'))}" />
+                                                    <c:choose>
+                                                        <c:when test="${fileExt eq 'pdf'}">
+                                                            <i class="fas fa-file-pdf"></i>
+                                                        </c:when>
+                                                        <c:when test="${fileExt eq 'doc' or fileExt eq 'docx'}">
+                                                            <i class="fas fa-file-word"></i>
+                                                        </c:when>
+                                                        <c:when test="${fileExt eq 'xls' or fileExt eq 'xlsx'}">
+                                                            <i class="fas fa-file-excel"></i>
+                                                        </c:when>
+                                                        <c:when test="${fileExt eq 'ppt' or fileExt eq 'pptx'}">
+                                                            <i class="fas fa-file-powerpoint"></i>
+                                                        </c:when>
+                                                        <c:when test="${fileExt eq 'jpg' or fileExt eq 'jpeg' or fileExt eq 'png' or fileExt eq 'gif'}">
+                                                            <i class="fas fa-file-image"></i>
+                                                        </c:when>
+                                                        <c:when test="${fileExt eq 'zip' or fileExt eq 'rar'}">
+                                                            <i class="fas fa-file-archive"></i>
+                                                        </c:when>
+                                                        <c:when test="${fileExt eq 'txt'}">
+                                                            <i class="fas fa-file-alt"></i>
+                                                        </c:when>
+                                                        <c:otherwise>
+                                                            <i class="fas fa-file"></i>
+                                                        </c:otherwise>
+                                                    </c:choose>
+                                                </div>
+                                                <div class="flex-grow-1">
+                                                    <h6 class="mb-2 text-truncate" title="${attachment.originalName}">
+                                                        <c:out value="${attachment.originalName}"/>
+                                                    </h6>
+                                                    <p class="text-muted small mb-2">
+                                                        <i class="fas fa-weight me-1"></i>
+                                                        <c:choose>
+                                                            <c:when test="${attachment.fileSize > 1024*1024}">
+                                                                ${Math.round(attachment.fileSize / 1024 / 1024 * 100) / 100} MB
+                                                            </c:when>
+                                                            <c:otherwise>
+                                                                ${Math.round(attachment.fileSize / 1024)} KB
+                                                            </c:otherwise>
+                                                        </c:choose>
+                                                        <br>
+                                                        <i class="fas fa-clock me-1"></i>
+                                                        <fmt:formatDate value="${attachment.uploadTime}" pattern="MM-dd HH:mm"/>
+                                                    </p>
+                                                    <div class="d-grid">
+                                                        <a href="${pageContext.request.contextPath}/web/attachment/download/${attachment.id}"
+                                                           class="btn btn-primary btn-sm no-print">
+                                                            <i class="fas fa-download me-1"></i>下載
+                                                        </a>
+                                                        <span class="print-hidden text-muted text-center">
+                                                            附件：<c:out value="${attachment.originalName}"/>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="flex-grow-1">
-                                        <h6 class="mb-1">
-                                            <c:out value="${announcement.attachmentName}"/>
-                                        </h6>
-                                        <small class="text-muted">點擊下載附件文件</small>
-                                    </div>
-                                    <div>
-                                        <a href="${pageContext.request.contextPath}/web/download/${announcement.id}"
-                                           class="btn btn-primary no-print">
-                                            <i class="fas fa-download me-1"></i>下載
-                                        </a>
-                                        <span class="print-hidden text-muted">
-                                            附件：<c:out value="${announcement.attachmentName}"/>
-                                        </span>
-                                    </div>
-                                </div>
+                                </c:forEach>
                             </div>
+
+                            <!-- 批量下載操作 -->
+                            <c:if test="${fn:length(attachments) > 1}">
+                                <div class="mt-3 text-center no-print">
+                                    <p class="text-muted mb-2">
+                                        <i class="fas fa-info-circle me-1"></i>
+                                        共 ${fn:length(attachments)} 個附件，可逐個下載
+                                    </p>
+                                </div>
+                            </c:if>
                         </div>
                     </c:if>
 
@@ -263,8 +363,8 @@
                             <i class="fas fa-history text-primary me-2"></i>時間線
                         </h5>
                         <div class="row">
-                            <div class="col-md-4 text-center">
-                                <div class="card border-success">
+                            <div class="col-md-4 text-center mb-3">
+                                <div class="card timeline-card border-success">
                                     <div class="card-body">
                                         <i class="fas fa-plus-circle fa-2x text-success mb-2"></i>
                                         <h6>創建時間</h6>
@@ -274,8 +374,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4 text-center">
-                                <div class="card border-primary">
+                            <div class="col-md-4 text-center mb-3">
+                                <div class="card timeline-card border-primary">
                                     <div class="card-body">
                                         <i class="fas fa-calendar-check fa-2x text-primary mb-2"></i>
                                         <h6>發佈日期</h6>
@@ -285,8 +385,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-md-4 text-center">
-                                <div class="card border-warning">
+                            <div class="col-md-4 text-center mb-3">
+                                <div class="card timeline-card border-warning">
                                     <div class="card-body">
                                         <i class="fas fa-flag-checkered fa-2x text-warning mb-2"></i>
                                         <h6>截止日期</h6>
@@ -308,56 +408,10 @@
                                 <i class="fas fa-info-circle me-1"></i>
                                 公告ID：${announcement.id} |
                                 創建於：<fmt:formatDate value="${announcement.createTime}" pattern="yyyy-MM-dd HH:mm"/>
+                                <c:if test="${not empty attachments and fn:length(attachments) > 0}">
+                                    | 附件：${fn:length(attachments)} 個
+                                </c:if>
                             </small>
-                        </div>
-                        <div>
-                            <a href="${pageContext.request.contextPath}/web/" class="btn btn-sm btn-outline-secondary me-2">
-                                <i class="fas fa-list me-1"></i>返回列表
-                            </a>
-                            <a href="${pageContext.request.contextPath}/web/edit/${announcement.id}"
-                               class="btn btn-sm btn-outline-primary me-2">
-                                <i class="fas fa-edit me-1"></i>編輯
-                            </a>
-                            <button onclick="confirmDelete()" class="btn btn-sm btn-outline-danger">
-                                <i class="fas fa-trash me-1"></i>刪除
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- 相關操作建議 -->
-            <div class="row mt-4 no-print">
-                <div class="col-md-4">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <i class="fas fa-edit fa-2x text-primary mb-2"></i>
-                            <h6>編輯公告</h6>
-                            <p class="text-muted small">修改公告內容或附件</p>
-                            <a href="${pageContext.request.contextPath}/web/edit/${announcement.id}"
-                               class="btn btn-sm btn-primary">立即編輯</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <i class="fas fa-plus fa-2x text-success mb-2"></i>
-                            <h6>新增公告</h6>
-                            <p class="text-muted small">創建一個新的公告</p>
-                            <a href="${pageContext.request.contextPath}/web/add"
-                               class="btn btn-sm btn-success">立即新增</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card text-center">
-                        <div class="card-body">
-                            <i class="fas fa-list fa-2x text-info mb-2"></i>
-                            <h6>瀏覽列表</h6>
-                            <p class="text-muted small">查看所有公告列表</p>
-                            <a href="${pageContext.request.contextPath}/web/"
-                               class="btn btn-sm btn-info">瀏覽列表</a>
                         </div>
                     </div>
                 </div>
@@ -370,7 +424,8 @@
         <div class="container">
             <small class="text-muted">
                 © 2025 公告管理系統 |
-                <i class="fas fa-code"></i> 基於Spring MVC + Bootstrap構建
+                <i class="fas fa-code"></i> 基於Spring MVC + Bootstrap構建 |
+                支援多附件管理
             </small>
         </div>
     </footer>
@@ -378,7 +433,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         function confirmDelete() {
-            if (confirm('確定要刪除這個公告嗎？\n\n標題：${announcement.title}\n\n此操作不可恢復！')) {
+            if (confirm('確定要刪除這個公告嗎？\n\n標題：${fn:escapeXml(announcement.title)}\n\n此操作不可恢復！')) {
                 window.location.href = '${pageContext.request.contextPath}/web/delete/${announcement.id}';
             }
         }
@@ -390,12 +445,25 @@
             } else {
                 // 直接訪問，滾動到內容區域
                 setTimeout(function() {
-                    document.querySelector('.card-body').scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
+                    const cardBody = document.querySelector('.card-body');
+                    if (cardBody) {
+                        cardBody.scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'start'
+                        });
+                    }
                 }, 300);
             }
+
+            // 附件項目hover效果
+            document.querySelectorAll('.attachment-item').forEach(item => {
+                item.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-3px)';
+                });
+                item.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
         });
 
         // 鍵盤快捷鍵
@@ -418,11 +486,18 @@
 
         // 打印樣式優化
         window.addEventListener('beforeprint', function() {
-            document.title = '${announcement.title} - 公告詳情';
+            document.title = '${fn:escapeXml(announcement.title)} - 公告詳情';
         });
 
         window.addEventListener('afterprint', function() {
-            document.title = '${announcement.title} - 公告管理系統';
+            document.title = '${fn:escapeXml(announcement.title)} - 公告管理系統';
+        });
+
+        // 附件下載追踪（可選）
+        document.querySelectorAll('a[href*="/attachment/download/"]').forEach(link => {
+            link.addEventListener('click', function() {
+                console.log('下載附件：', this.textContent.trim());
+            });
         });
     </script>
 </body>
