@@ -1,67 +1,63 @@
-// 表单页面脚本 - form.js
+$(document).ready(function() {
+    var $form = $('#announcementForm');
+    var $publishDate = $('#publishDate');
+    var $endDate = $('#endDate');
+    var $attachments = $('#attachments');
+    var $filePreview = $('#filePreview');
+    var $fileList = $('#fileList');
+    var $fileUploadArea = $('#fileUploadArea');
+    var $submitBtn = $('#submitBtn');
+    var $resetBtn = $('#resetBtn');
+    var $contentInput = $('#contentInput');
+    var $richEditor = $('#richEditor');
 
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('announcementForm');
-    const publishDate = document.getElementById('publishDate');
-    const endDate = document.getElementById('endDate');
-    const attachments = document.getElementById('attachments');
-    const filePreview = document.getElementById('filePreview');
-    const fileList = document.getElementById('fileList');
-    const fileUploadArea = document.getElementById('fileUploadArea');
-    const submitBtn = document.getElementById('submitBtn');
-    const resetBtn = document.getElementById('resetBtn');
-    const contentInput = document.getElementById('contentInput');
-    const richEditor = document.getElementById('richEditor');
-
-    // 富文本编辑器功能
+    // 富文本編輯器功能
     function initRichEditor() {
-        // 工具栏按钮事件
-        document.querySelectorAll('.toolbar-btn').forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                const command = this.dataset.command;
-                if (command) {
-                    document.execCommand(command, false, null);
-                    this.classList.toggle('active');
-                    richEditor.focus();
-                }
-            });
+        // 工具欄按鈕事件
+        $('.toolbar-btn').on('click', function(e) {
+            e.preventDefault();
+            var command = $(this).data('command');
+            if (command) {
+                document.execCommand(command, false, null);
+                $(this).toggleClass('active');
+                $richEditor.focus();
+            }
         });
 
-        // 字体大小
-        document.getElementById('fontSize').addEventListener('change', function() {
+        // 字體大小
+        $('#fontSize').on('change', function() {
             document.execCommand('fontSize', false, '7');
-            const fontElements = richEditor.querySelectorAll('font[size="7"]');
-            fontElements.forEach(el => {
-                el.removeAttribute('size');
-                el.style.fontSize = this.value;
+            var fontSize = $(this).val();
+            $richEditor.find('font[size="7"]').each(function() {
+                $(this).removeAttr('size').css('font-size', fontSize);
             });
-            richEditor.focus();
+            $richEditor.focus();
         });
 
-        // 文字颜色
-        document.getElementById('textColor').addEventListener('change', function() {
-            document.execCommand('foreColor', false, this.value);
-            richEditor.focus();
+        // 文字顏色
+        $('#textColor').on('change', function() {
+            document.execCommand('foreColor', false, $(this).val());
+            $richEditor.focus();
         });
 
-        // 背景颜色
-        document.getElementById('bgColor').addEventListener('change', function() {
-            document.execCommand('backColor', false, this.value);
-            richEditor.focus();
+        // 背景顏色
+        $('#bgColor').on('change', function() {
+            document.execCommand('backColor', false, $(this).val());
+            $richEditor.focus();
         });
 
-        // 更新工具栏状态
-        richEditor.addEventListener('mouseup', updateToolbarState);
-        richEditor.addEventListener('keyup', updateToolbarState);
+        // 更新工具欄狀態
+        $richEditor.on('mouseup keyup', function() {
+            updateToolbarState();
+        });
 
         function updateToolbarState() {
-            document.querySelectorAll('.toolbar-btn').forEach(btn => {
-                const command = btn.dataset.command;
+            $('.toolbar-btn').each(function() {
+                var command = $(this).data('command');
                 if (command && document.queryCommandState(command)) {
-                    btn.classList.add('active');
+                    $(this).addClass('active');
                 } else {
-                    btn.classList.remove('active');
+                    $(this).removeClass('active');
                 }
             });
         }
@@ -70,128 +66,112 @@ document.addEventListener('DOMContentLoaded', function() {
     // 清除格式功能
     window.clearFormat = function() {
         document.execCommand('removeFormat', false, null);
-        richEditor.focus();
+        $richEditor.focus();
     };
 
-    // 初始化富文本编辑器
+    // 初始化富文本編輯器
     initRichEditor();
 
     // 設置默認日期（僅新增時）
     if (isNewAnnouncement) {
-        const today = new Date().toISOString().split('T')[0];
-        if (!publishDate.value) {
-            publishDate.value = today;
+        var today = new Date().toISOString().split('T')[0];
+        if (!$publishDate.val()) {
+            $publishDate.val(today);
         }
 
-        if (!endDate.value) {
-            const nextMonth = new Date();
+        if (!$endDate.val()) {
+            var nextMonth = new Date();
             nextMonth.setMonth(nextMonth.getMonth() + 1);
-            endDate.value = nextMonth.toISOString().split('T')[0];
+            $endDate.val(nextMonth.toISOString().split('T')[0]);
         }
     }
 
     // 日期驗證
     function validateDates() {
-        if (publishDate.value && endDate.value) {
-            if (new Date(publishDate.value) > new Date(endDate.value)) {
-                endDate.setCustomValidity('截止日期不能早於發佈日期');
-                endDate.classList.add('is-invalid');
+        var publishDateVal = $publishDate.val();
+        var endDateVal = $endDate.val();
+
+        if (publishDateVal && endDateVal) {
+            if (new Date(publishDateVal) > new Date(endDateVal)) {
+                $endDate[0].setCustomValidity('截止日期不能早於發佈日期');
+                $endDate.addClass('is-invalid');
                 return false;
             } else {
-                endDate.setCustomValidity('');
-                endDate.classList.remove('is-invalid');
+                $endDate[0].setCustomValidity('');
+                $endDate.removeClass('is-invalid');
                 return true;
             }
         }
         return true;
     }
 
-    publishDate.addEventListener('change', validateDates);
-    endDate.addEventListener('change', validateDates);
+    $publishDate.on('change', validateDates);
+    $endDate.on('change', validateDates);
 
     // 文件拖拽處理
-    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-        fileUploadArea.addEventListener(eventName, preventDefaults, false);
-    });
-
-    function preventDefaults(e) {
+    $fileUploadArea.on('dragenter dragover dragleave drop', function(e) {
         e.preventDefault();
         e.stopPropagation();
-    }
-
-    ['dragenter', 'dragover'].forEach(eventName => {
-        fileUploadArea.addEventListener(eventName, highlight, false);
     });
 
-    ['dragleave', 'drop'].forEach(eventName => {
-        fileUploadArea.addEventListener(eventName, unhighlight, false);
+    $fileUploadArea.on('dragenter dragover', function(e) {
+        $(this).addClass('dragover');
     });
 
-    function highlight(e) {
-        fileUploadArea.classList.add('dragover');
-    }
+    $fileUploadArea.on('dragleave drop', function(e) {
+        $(this).removeClass('dragover');
+    });
 
-    function unhighlight(e) {
-        fileUploadArea.classList.remove('dragover');
-    }
-
-    fileUploadArea.addEventListener('drop', handleDrop, false);
-
-    function handleDrop(e) {
-        const dt = e.dataTransfer;
-        const files = dt.files;
-        attachments.files = files;
+    $fileUploadArea.on('drop', function(e) {
+        var files = e.originalEvent.dataTransfer.files;
+        $attachments[0].files = files;
         handleFiles(files);
-    }
+    });
 
     // 文件選擇處理
-    attachments.addEventListener('change', function() {
+    $attachments.on('change', function() {
         handleFiles(this.files);
     });
 
     function handleFiles(files) {
         if (files.length > 0) {
-            filePreview.style.display = 'block';
-            fileList.innerHTML = '';
+            $filePreview.show();
+            $fileList.empty();
 
-            for (let i = 0; i < files.length; i++) {
-                const file = files[i];
-
+            $.each(files, function(i, file) {
                 // 檢查文件大小
                 if (file.size > 50 * 1024 * 1024) {
-                    alert(`文件 "${file.name}" 大小超過50MB限制！`);
-                    attachments.value = '';
-                    filePreview.style.display = 'none';
-                    return;
+                    alert('文件 "' + file.name + '" 大小超過50MB限制！');
+                    $attachments.val('');
+                    $filePreview.hide();
+                    return false;
                 }
 
-                const fileItem = document.createElement('div');
-                fileItem.className = 'file-item d-flex justify-content-between align-items-center';
+                var fileSize = (file.size / 1024 / 1024).toFixed(2);
+                var fileIcon = getFileIcon(file.name);
 
-                const fileSize = (file.size / 1024 / 1024).toFixed(2);
-                const fileIcon = getFileIcon(file.name);
+                var $fileItem = $('<div class="file-item d-flex justify-content-between align-items-center">');
+                $fileItem.html(
+                    '<div class="d-flex align-items-center">' +
+                        '<i class="' + fileIcon + ' text-primary me-3 fa-lg"></i>' +
+                        '<div>' +
+                            '<div class="fw-bold">' + file.name + '</div>' +
+                            '<small class="text-muted">' + fileSize + ' MB</small>' +
+                        '</div>' +
+                    '</div>' +
+                    '<span class="badge bg-success">待上傳</span>'
+                );
 
-                fileItem.innerHTML = `
-                    <div class="d-flex align-items-center">
-                        <i class="${fileIcon} text-primary me-3 fa-lg"></i>
-                        <div>
-                            <div class="fw-bold">${file.name}</div>
-                            <small class="text-muted">${fileSize} MB</small>
-                        </div>
-                    </div>
-                    <span class="badge bg-success">待上傳</span>
-                `;
-
-                fileList.appendChild(fileItem);
-            }
+                $fileList.append($fileItem);
+            });
         } else {
-            filePreview.style.display = 'none';
+            $filePreview.hide();
         }
     }
 
     function getFileIcon(fileName) {
-        const ext = fileName.split('.').pop().toLowerCase();
-        const iconMap = {
+        var ext = fileName.split('.').pop().toLowerCase();
+        var iconMap = {
             'pdf': 'fas fa-file-pdf',
             'doc': 'fas fa-file-word', 'docx': 'fas fa-file-word',
             'xls': 'fas fa-file-excel', 'xlsx': 'fas fa-file-excel',
@@ -204,32 +184,32 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // 表單重置
-    resetBtn.addEventListener('click', function() {
-        filePreview.style.display = 'none';
-        form.classList.remove('was-validated');
-        richEditor.innerHTML = '';
-        // 重置工具栏状态
-        document.querySelectorAll('.toolbar-btn').forEach(btn => btn.classList.remove('active'));
-        document.getElementById('fontSize').value = '14px';
-        document.getElementById('textColor').value = '#000000';
-        document.getElementById('bgColor').value = '#ffffff';
+    $resetBtn.on('click', function() {
+        $filePreview.hide();
+        $form.removeClass('was-validated');
+        $richEditor.html('');
+        // 重置工具欄狀態
+        $('.toolbar-btn').removeClass('active');
+        $('#fontSize').val('14px');
+        $('#textColor').val('#000000');
+        $('#bgColor').val('#ffffff');
     });
 
     // 表單提交
-    form.addEventListener('submit', function(e) {
-        // 更新隐藏字段的内容
-        contentInput.value = richEditor.innerHTML;
+    $form.on('submit', function(e) {
+        // 更新隱藏欄位的內容
+        $contentInput.val($richEditor.html());
 
-        if (!validateDates() || !form.checkValidity()) {
+        if (!validateDates() || !this.checkValidity()) {
             e.preventDefault();
             e.stopPropagation();
-            form.classList.add('was-validated');
+            $form.addClass('was-validated');
             return;
         }
 
         // 顯示提交狀態
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>保存中...';
-        submitBtn.disabled = true;
-        resetBtn.disabled = true;
+        $submitBtn.html('<i class="fas fa-spinner fa-spin me-2"></i>保存中...')
+                  .prop('disabled', true);
+        $resetBtn.prop('disabled', true);
     });
 });
