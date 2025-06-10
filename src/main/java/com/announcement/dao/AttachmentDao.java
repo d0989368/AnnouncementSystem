@@ -65,14 +65,4 @@ public class AttachmentDao {
         query.setParameter("announcementId", announcementId);
         return query.executeUpdate();
     }
-
-    /**
-     * 統計公告的附件數量
-     */
-    public long countByAnnouncementId(Long announcementId) {
-        String hql = "SELECT COUNT(a) FROM Attachment a WHERE a.announcementId = :announcementId";
-        Query<Long> query = getCurrentSession().createQuery(hql, Long.class);
-        query.setParameter("announcementId", announcementId);
-        return query.getSingleResult();
-    }
 }

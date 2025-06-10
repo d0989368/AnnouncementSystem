@@ -26,24 +26,6 @@ public class AttachmentService {
     private static final String UPLOAD_DIR = "/opt/uploads/";
 
     /**
-     * 保存多個附件
-     */
-    public List<Attachment> saveAttachments(Long announcementId, MultipartFile[] files) throws IOException {
-        List<Attachment> attachments = new ArrayList<>();
-
-        if (files != null && files.length > 0) {
-            for (MultipartFile file : files) {
-                if (!file.isEmpty()) {
-                    Attachment attachment = saveAttachment(announcementId, file);
-                    attachments.add(attachment);
-                }
-            }
-        }
-
-        return attachments;
-    }
-
-    /**
      * 保存單個附件
      */
     public Attachment saveAttachment(Long announcementId, MultipartFile file) throws IOException {
@@ -107,14 +89,6 @@ public class AttachmentService {
 
         // 刪除數據庫記錄
         attachmentDao.deleteByAnnouncementId(announcementId);
-    }
-
-    /**
-     * 獲取附件數量
-     */
-    @Transactional(readOnly = true)
-    public long getAttachmentCount(Long announcementId) {
-        return attachmentDao.countByAnnouncementId(announcementId);
     }
 
     /**
